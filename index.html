@@ -3,106 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sports Data Hub - דאשבורד חי</title>
+    <title>Sports Data Hub | דאשבורד נתונים חי</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;700;900&display=swap" rel="stylesheet">
+    
     <style>
-        body { font-family: 'Heebo', sans-serif; background-color: #0f172a; color: white; }
-        .match-card { background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid #334155; }
-        .live-pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        body { 
+            font-family: 'Heebo', sans-serif; 
+            background-color: #0b0f1a; 
+            color: #f8fafc; 
+        }
+        .match-card { 
+            background: rgba(30, 41, 59, 0.5); 
+            backdrop-filter: blur(8px); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            transition: all 0.3s ease;
+        }
+        .match-card:hover { 
+            transform: translateY(-5px); 
+            border-color: #3b82f6; 
+        }
+        .live-pulse { 
+            animation: pulse 2s infinite; 
+        }
+        @keyframes pulse { 
+            0%, 100% { opacity: 1; } 
+            50% { opacity: 0.4; } 
+        }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
-    
-    <header class="max-w-6xl mx-auto mb-10 text-center">
-        <h1 class="text-4xl md:text-6xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-            SPORTS DATA HUB
-        </h1>
-        <p class="text-slate-400 text-lg">נתונים בזמן אמת מ-ESPN וספורט 5</p>
+<body class="min-h-screen">
+
+    <header class="border-b border-slate-800 bg-slate-900/80 sticky top-0 z-50 backdrop-blur-md">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-black text-xl">S</div>
+                <h1 class="text-2xl font-black tracking-tighter">SPORTS<span class="text-blue-500">DATA</span></h1>
+            </div>
+            <div id="status-badge" class="text-[10px] font-bold px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
+                מערכת בטעינה...
+            </div>
+        </div>
     </header>
 
-    <main class="max-w-6xl mx-auto">
+    <main class="max-w-6xl mx-auto px-6 py-10">
+        <div class="mb-10">
+            <h2 class="text-4xl font-black mb-2">לוח תוצאות בזמן אמת</h2>
+            <p class="text-slate-400">נתונים מוזרמים מ-ESPN וספורט 5 ישירות מ-Supabase</p>
+        </div>
+
         <div id="matches-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="col-span-full text-center py-20">
-                <p class="text-xl text-slate-500">טוען נתונים מהמערכת...</p>
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                <p class="text-xl text-slate-500">מתחבר למסד הנתונים...</p>
             </div>
         </div>
     </main>
 
     <script>
-       // פרטי החיבור המדויקים שלך
-const SB_URL = "https://dwifoemfuvwvhkfekrky.supabase.co";
-const SB_KEY = "sb_publishable_USB3t56P0aWyLOo6z-y-dg_X36TGa_t";
+        // פרטי החיבור ל-Supabase
+        const SB_URL = "https://dwifoemfuvwvhkfekrky.supabase.co";
+        const SB_KEY = "sb_publishable_USB3t56P0aWyLOo6z-y-dg_X36TGa_t";
 
-// שים לב לשינוי כאן - קראנו למשתנה 'client' במקום 'supabase'
-const client = supabase.createClient(SB_URL, SB_KEY);
+        // שימוש בשם משתנה ייחודי כדי למנוע את השגיאה שהופיעה ב-Console
+        const supabaseConnection = supabase.createClient(SB_URL, SB_KEY);
 
-async function fetchMatches() {
-    try {
-        console.log("מתחיל למשוך נתונים...");
-        const { data, error } = await client
-            .from('matches')
-            .select('*')
-            .order('id', { ascending: false });
+        async function updateDashboard() {
+            const statusBadge = document.getElementById('status-badge');
+            
+            try {
+                const { data, error } = await supabaseConnection
+                    .from('matches')
+                    .select('*')
+                    .order('id', { ascending: false });
 
-        if (error) throw error;
+                if (error) throw error;
 
-        console.log("נתונים הגיעו:", data);
-        renderMatches(data);
-    } catch (err) {
-        console.error("שגיאה במשיכת נתונים:", err);
-        document.getElementById('matches-grid').innerHTML = 
-            `<p class="col-span-full text-center text-red-400">שגיאה בחיבור למסד הנתונים: ${err.message}</p>`;
-    }
-}
+                statusBadge.innerHTML = 'מחובר • עודכן לאחרונה: ' + new Date().toLocaleTimeString('he-IL');
+                statusBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400";
+                
+                renderUI(data);
+            } catch (err) {
+                console.error("שגיאה במשיכת נתונים:", err);
+                statusBadge.innerHTML = 'שגיאת חיבור';
+                statusBadge.className = "text-[10px] font-bold px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-red-400";
+            }
+        }
 
-function renderMatches(matches) {
-    const grid = document.getElementById('matches-grid');
-    grid.innerHTML = '';
+        function renderUI(matches) {
+            const grid = document.getElementById('matches-grid');
+            grid.innerHTML = '';
 
-    if (!matches || matches.length === 0) {
-        grid.innerHTML = '<p class="col-span-full text-center text-slate-500">אין נתונים להצגה (הטבלה ריקה).</p>';
-        return;
-    }
+            if (!matches || matches.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-20 bg-slate-900/30 rounded-3xl border border-dashed border-slate-700">
+                        <p class="text-slate-500">הטבלה ריקה. הבוט ב-GitHub Actions צריך להזרים נתונים.</p>
+                    </div>`;
+                return;
+            }
 
-    matches.forEach(match => {
-        const card = document.createElement('div');
-        card.className = 'match-card p-6 rounded-2xl shadow-xl border-t-2 border-slate-700';
-        
-        // הגדרת תוצאות ברירת מחדל אם הן NULL (כמו ב-LIVE_TEST שלך)
-        const scoreH = match.score_home ?? 0;
-        const scoreA = match.score_away ?? 0;
+            matches.forEach(match => {
+                const isLive = match.status && (match.status.includes(':') || match.status.includes('LIVE') || match.status.includes('1st') || match.status.includes('2nd'));
+                const scoreHome = match.score_home ?? 0;
+                const scoreAway = match.score_away ?? 0;
 
-        card.innerHTML = `
-            <div class="flex justify-between items-center mb-4">
-                <span class="text-xs font-bold px-2 py-1 rounded bg-slate-800 text-slate-300">
-                    ${match.status || 'בדיקה'}
-                </span>
-                <span class="text-slate-600 text-[10px]">#${match.id}</span>
-            </div>
-            <div class="flex justify-around items-center text-center">
-                <div>
-                    <div class="text-3xl font-black">${scoreH}</div>
-                    <div class="text-[10px] text-slate-500">HOME</div>
-                </div>
-                <div class="text-slate-700 font-bold">:</div>
-                <div>
-                    <div class="text-3xl font-black">${scoreA}</div>
-                    <div class="text-[10px] text-slate-500">AWAY</div>
-                </div>
-            </div>
-        `;
-        grid.appendChild(card);
-    });
-}
+                const card = document.createElement('div');
+                card.className = 'match-card p-6 rounded-2xl shadow-2xl';
+                card.innerHTML = `
+                    <div class="flex justify-between items-center mb-6">
+                        <span class="text-[10px] font-bold tracking-widest text-slate-500 uppercase">ID: ${match.id}</span>
+                        <div class="flex items-center gap-2">
+                            ${isLive ? '<span class="w-2 h-2 rounded-full bg-red-500 live-pulse"></span>' : ''}
+                            <span class="text-[10px] font-bold px-2 py-1 rounded ${isLive ? 'bg-red-500/10 text-red-400' : 'bg-slate-800 text-slate-400'}">
+                                ${match.status || 'בדיקה'}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-8">
+                        <div class="text-center flex-1">
+                            <div class="text-4xl font-black mb-1">${scoreHome}</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">קבוצת בית</div>
+                        </div>
+                        <div class="text-slate-800 text-xl font-bold italic px-4">:</div>
+                        <div class="text-center flex-1">
+                            <div class="text-4xl font-black mb-1">${scoreAway}</div>
+                            <div class="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">קבוצת חוץ</div>
+                        </div>
+                    </div>
 
-// הפעלה
-fetchMatches();
+                    <div class="border-t border-slate-800/50 pt-4 flex justify-between items-center">
+                        <span class="text-[9px] text-slate-600 font-bold">PROBABILITY</span>
+                        <div class="flex gap-2">
+                            <span class="text-[10px] text-emerald-500 font-bold">1.85</span>
+                            <span class="text-[10px] text-slate-600 font-bold">3.10</span>
+                            <span class="text-[10px] text-blue-500 font-bold">2.40</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
 
-        // עדכון אוטומטי כל 30 שניות בלי לרענן את הדף
-        setInterval(fetchMatches, 30000);
+        // טעינה ראשונית
+        updateDashboard();
+
+        // עדכון אוטומטי כל 20 שניות (ללא ריענון דף)
+        setInterval(updateDashboard, 20000);
     </script>
 </body>
 </html>
